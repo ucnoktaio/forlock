@@ -175,7 +175,9 @@ sleep 10
 # Health check
 echo ""
 echo -e "${BLUE}Checking health...${NC}"
-./scripts/health-check.sh || true
+./scripts/maintenance/health-check.sh || {
+    echo -e "${YELLOW}Health check reported issues. Check logs with: docker compose logs${NC}"
+}
 
 echo ""
 echo -e "${GREEN}╔═══════════════════════════════════════╗${NC}"
@@ -187,7 +189,7 @@ echo ""
 echo "Useful commands:"
 echo "  docker compose logs -f          # View logs"
 echo "  docker compose ps               # Check status"
-echo "  ./scripts/health-check.sh       # Health check"
+echo "  ./scripts/maintenance/health-check.sh  # Health check"
 echo ""
 echo -e "${YELLOW}IMPORTANT: Backup your .env file securely!${NC}"
 echo ""

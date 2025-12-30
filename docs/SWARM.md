@@ -95,7 +95,59 @@ docker stack deploy -c docker-compose.swarm.yml forlock
 
 ---
 
-## Scaling
+## Scaling Guide by User Count
+
+### 5,000 Users (3 Nodes)
+
+| Node | Role | Specs | Services |
+|------|------|-------|----------|
+| Node 1 | Manager | 8 vCPU, 32 GB | PostgreSQL, Redis, RabbitMQ |
+| Node 2 | Worker | 8 vCPU, 16 GB | API x2, Frontend, Nginx |
+| Node 3 | Worker | 8 vCPU, 16 GB | API x2, Frontend, Nginx |
+
+**Total: 24 vCPU, 64 GB RAM**
+
+```bash
+# Scale services for 5K users
+docker service scale forlock_api=4
+docker service scale forlock_frontend=2
+```
+
+### 10,000 Users (5 Nodes)
+
+| Node | Role | Specs | Services |
+|------|------|-------|----------|
+| Node 1 | Manager | 16 vCPU, 64 GB | PostgreSQL Primary |
+| Node 2 | Manager | 8 vCPU, 16 GB | PostgreSQL Replica, Redis |
+| Node 3 | Manager | 8 vCPU, 8 GB | RabbitMQ Cluster |
+| Node 4 | Worker | 16 vCPU, 32 GB | API x3, Frontend x2, Nginx |
+| Node 5 | Worker | 16 vCPU, 32 GB | API x3, Frontend x2, Nginx |
+
+**Total: 64 vCPU, 152 GB RAM**
+
+```bash
+# Scale services for 10K users
+docker service scale forlock_api=6
+docker service scale forlock_frontend=4
+```
+
+### 20,000+ Users (7+ Nodes)
+
+| Component | Nodes | Specs per Node |
+|-----------|-------|----------------|
+| PostgreSQL (Primary + Replicas) | 2 | 16 vCPU, 64 GB |
+| Redis Cluster | 3 | 4 vCPU, 16 GB |
+| RabbitMQ Cluster | 3 | 4 vCPU, 8 GB |
+| API Workers | 4+ | 16 vCPU, 32 GB |
+
+```bash
+docker service scale forlock_api=12
+docker service scale forlock_frontend=6
+```
+
+---
+
+## Scaling Commands
 
 ### Scale API
 

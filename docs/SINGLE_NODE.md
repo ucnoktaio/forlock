@@ -161,9 +161,22 @@ gunzip -c backup_20241230.sql.gz | \
 
 ---
 
-## Resource Limits
+## Resource Sizing Guide
 
-Default limits in `docker-compose.yml`:
+### Server Requirements by User Count
+
+| Users | CPU | RAM | Disk | API Replicas | Deployment |
+|-------|-----|-----|------|--------------|------------|
+| < 100 | 2 vCPU | 4 GB | 20 GB SSD | 1 | Single Node |
+| 100-500 | 4 vCPU | 8 GB | 50 GB SSD | 1 | Single Node |
+| 500-1K | 4 vCPU | 16 GB | 100 GB SSD | 2 | Single Node |
+| 1K-5K | 8 vCPU | 32 GB | 200 GB SSD | 3 | Single Node |
+| 5K-10K | 16 vCPU | 64 GB | 500 GB SSD | 6 | Swarm recommended |
+| 10K+ | 32+ vCPU | 128+ GB | 1+ TB SSD | 10+ | Swarm/K8s required |
+
+### Service-Level Resource Allocation
+
+#### Default Configuration (< 500 Users)
 
 | Service | CPU | Memory |
 |---------|-----|--------|
@@ -174,14 +187,68 @@ Default limits in `docker-compose.yml`:
 | Frontend | 0.5 core | 128 MB |
 | Nginx | 0.5 core | 128 MB |
 
-Adjust in `docker-compose.yml` if needed:
+#### 5,000 Users Configuration
+
+| Service | CPU | Memory | Notes |
+|---------|-----|--------|-------|
+| PostgreSQL | 4 cores | 16 GB | Enable connection pooling |
+| Redis | 2 cores | 4 GB | Increase maxmemory |
+| RabbitMQ | 2 cores | 2 GB | - |
+| API | 2 cores | 4 GB | Run 3 replicas |
+| Frontend | 0.5 core | 256 MB | Run 2 replicas |
+| Nginx | 1 core | 512 MB | - |
+
+**Total: 16 vCPU, 64 GB RAM**
+
+Update `.env`:
+```bash
+API_MEMORY_LIMIT=4G
+API_CPU_LIMIT=2.0
+POSTGRES_MEMORY_LIMIT=16G
+REDIS_MEMORY_LIMIT=4G
+```
+
+#### 10,000 Users Configuration
+
+| Service | CPU | Memory | Notes |
+|---------|-----|--------|-------|
+| PostgreSQL | 8 cores | 32 GB | Add read replica |
+| Redis | 4 cores | 8 GB | Consider cluster mode |
+| RabbitMQ | 2 cores | 4 GB | 3-node cluster |
+| API | 4 cores | 8 GB | Run 6 replicas |
+| Frontend | 1 core | 512 MB | Run 3 replicas |
+| Nginx | 2 cores | 1 GB | - |
+
+**Total: 32+ vCPU, 128+ GB RAM - Use Docker Swarm**
+
+See [Docker Swarm Guide](SWARM.md) for 10K+ deployments.
+
+### Adjusting Resources
+
+Edit `docker-compose.yml`:
 
 ```yaml
 deploy:
   resources:
     limits:
       cpus: '4'
-      memory: 2G
+      memory: 4G
+    reservations:
+      cpus: '1'
+      memory: 1G
+```
+
+### PostgreSQL Tuning for Large Deployments
+
+For 5K+ users, add to PostgreSQL environment:
+
+```yaml
+environment:
+  POSTGRES_SHARED_BUFFERS: 4GB
+  POSTGRES_EFFECTIVE_CACHE_SIZE: 12GB
+  POSTGRES_WORK_MEM: 256MB
+  POSTGRES_MAINTENANCE_WORK_MEM: 512MB
+  POSTGRES_MAX_CONNECTIONS: 200
 ```
 
 ---
