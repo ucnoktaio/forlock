@@ -59,6 +59,17 @@ kubectl apply -f k8s/
 | Docker | 24.0+ | Latest |
 | OS | Ubuntu 22.04 | Ubuntu 24.04 |
 
+### Scaling by User Count
+
+| Users | CPU | RAM | Disk | Deployment |
+|-------|-----|-----|------|------------|
+| < 500 | 4 vCPU | 8 GB | 50 GB | Single Node |
+| 1K-5K | 8 vCPU | 32 GB | 200 GB | Single Node |
+| 5K-10K | 16 vCPU | 64 GB | 500 GB | Docker Swarm |
+| 10K+ | 32+ vCPU | 128+ GB | 1+ TB | Swarm/K8s |
+
+See [Resource Sizing Guide](docs/SINGLE_NODE.md#resource-sizing-guide) for details.
+
 ---
 
 ## Docker Hub Authentication
@@ -88,9 +99,9 @@ echo "<ACCESS_TOKEN>" | docker login -u ucnokta --password-stdin
 | Kubernetes | Enterprise/Cloud | `k8s/*.yaml` |
 
 See detailed guides:
-- [Single Node Guide](docs/SINGLE_NODE.md)
-- [Docker Swarm Guide](docs/SWARM.md)
-- [Kubernetes Guide](docs/KUBERNETES.md)
+- [Single Node Guide](docs/SINGLE_NODE.md) - Up to 5K users
+- [Docker Swarm Guide](docs/SWARM.md) - 5K-20K+ users with HA
+- [Kubernetes Guide](docs/KUBERNETES.md) - Enterprise/Cloud native
 
 ---
 
