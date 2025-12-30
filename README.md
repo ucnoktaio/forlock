@@ -236,10 +236,32 @@ Located in `scripts/maintenance/`:
 
 ---
 
+## HashiCorp Vault Integration (Optional)
+
+For enhanced secrets management, integrate with HashiCorp Vault:
+
+```bash
+# 1. Start Vault
+cd vault && docker compose up -d
+
+# 2. Initialize and setup
+./vault/scripts/init-vault.sh
+export VAULT_TOKEN=<root-token>
+./vault/scripts/setup-vault.sh
+
+# 3. Store secrets in Vault
+./vault/scripts/store-secrets.sh
+```
+
+See [Vault Integration Guide](docs/guides/VAULT_INTEGRATION.md) for details.
+
+---
+
 ## Security
 
 - **Firewall**: Only expose ports 80, 443
 - **Secrets**: Never commit `.env` file
+- **Vault**: Use HashiCorp Vault for production secrets
 - **Updates**: Regularly pull latest images
 - **Backups**: Daily database backups recommended
 

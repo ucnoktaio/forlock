@@ -1,0 +1,41 @@
+version: '3.8'
+
+services:
+  vault:
+    image: hashicorp/vault:1.15
+    container_name: forlock-vault
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:8200:8200"
+    volumes:
+      - vault-data:/vault/data
+      - ./config:/vault/config:ro
+      - ./policies:/vault/policies:ro
+      - ./logs:/vault/logs
+    environment:
+      VAULT_ADDR: "http://127.0.0.1:8200"
+      VAULT_API_ADDR: "http://127.0.0.1:8200"
+      VAULT_LOCAL_CONFIG: |
+        ui = true
+        disable_mlock = false
+        cluster_name = "forlock-vault"
+    cap_add:
+      - IPC_LOCK
+    command: server -config=/vault/config/vault.hcl
+    networks:
+      - forlock-network
+    healthcheck:
+      test: ["CMD", "vault", "status", "-address=http://127.0.0.1:8200"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+
+volumes:
+  vault-data:
+    driver: local
+
+networks:
+  forlock-network:
+    name: forlock-network
+    external: true

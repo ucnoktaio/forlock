@@ -23,6 +23,7 @@
 | | [GDPR/KVKK](compliance/GDPR_KVKK.md) | Data protection compliance |
 | **Guides** | [WAF Deployment](guides/WAF_DEPLOYMENT.md) | ModSecurity WAF setup |
 | | [SIEM Integration](guides/SIEM_INTEGRATION.md) | Graylog logging setup |
+| | [Vault Integration](guides/VAULT_INTEGRATION.md) | HashiCorp Vault setup |
 
 ---
 
@@ -84,7 +85,8 @@ docs/
 │
 └── guides/                     # Technical guides
     ├── WAF_DEPLOYMENT.md       # ModSecurity WAF
-    └── SIEM_INTEGRATION.md     # Graylog setup
+    ├── SIEM_INTEGRATION.md     # Graylog setup
+    └── VAULT_INTEGRATION.md    # HashiCorp Vault
 ```
 
 ---
@@ -104,8 +106,8 @@ docs/
 For technical support and inquiries:
 
 - **Documentation Issues**: [GitHub Issues](https://github.com/ucnokta/forlock-deploy/issues)
-- **Security Concerns**: security@[your-domain]
-- **Compliance Questions**: compliance@[your-domain]
+- **Security Concerns**: security@ucnokta.io
+- **Compliance Questions**: compliance@ucnokta.io
 
 ---
 
