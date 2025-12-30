@@ -24,7 +24,7 @@ services:
     image: postgres:15-alpine
     environment:
       POSTGRES_DB: forlock
-      POSTGRES_USER: vault_user
+      POSTGRES_USER: forlock
       POSTGRES_PASSWORD_FILE: /run/secrets/postgres_password
       POSTGRES_INITDB_ARGS: "-E UTF8 --locale=en_US.UTF-8"
     secrets:
@@ -51,7 +51,7 @@ services:
         delay: 5s
         max_attempts: 3
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U vault_user -d forlock"]
+      test: ["CMD-SHELL", "pg_isready -U forlock -d forlock"]
       interval: 10s
       timeout: 5s
       retries: 5

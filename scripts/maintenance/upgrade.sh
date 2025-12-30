@@ -10,6 +10,10 @@
 
 set -e
 
+# Resolve script directory for reliable path resolution
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+PROJECT_ROOT="$(dirname "$(dirname "$SCRIPT_DIR")")"
+
 SERVICE="${1:-all}"
 
 # Colors
@@ -27,7 +31,7 @@ fi
 
 backup_before_upgrade() {
     echo -e "${BLUE}[1/4] Creating backup before upgrade...${NC}"
-    ./scripts/backup.sh ./backups/pre-upgrade-$(date +%Y%m%d_%H%M%S)
+    "$SCRIPT_DIR/backup.sh" "$PROJECT_ROOT/backups/pre-upgrade-$(date +%Y%m%d_%H%M%S)"
 }
 
 pull_images() {
@@ -85,18 +89,18 @@ upgrade_swarm() {
 verify_upgrade() {
     echo -e "${BLUE}[4/4] Verifying upgrade...${NC}"
     sleep 10
-    ./scripts/health-check.sh
+    "$SCRIPT_DIR/health-check.sh"
 }
 
 rollback_compose() {
     echo -e "${YELLOW}Rolling back (Compose mode)...${NC}"
 
     # Find latest pre-upgrade backup
-    local latest_backup=$(ls -t ./backups/pre-upgrade-*/postgres_*.sql.gz 2>/dev/null | head -1)
+    local latest_backup=$(ls -t "$PROJECT_ROOT/backups/pre-upgrade-"*/postgres_*.sql.gz 2>/dev/null | head -1)
 
     if [ -n "$latest_backup" ]; then
         echo "Found backup: $latest_backup"
-        ./scripts/restore.sh "$latest_backup"
+        "$SCRIPT_DIR/restore.sh" "$latest_backup"
     else
         echo -e "${RED}No pre-upgrade backup found${NC}"
     fi

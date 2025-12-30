@@ -270,7 +270,7 @@ kubectl describe pvc postgres-data-postgres-0 -n forlock
 kubectl run backup --rm -it --restart=Never \
   --image=postgres:15-alpine \
   -n forlock \
-  -- pg_dump -h postgres -U vault_user forlock > backup.sql
+  -- pg_dump -h postgres -U forlock forlock > backup.sql
 ```
 
 ### Restore
@@ -279,7 +279,7 @@ kubectl run backup --rm -it --restart=Never \
 kubectl run restore --rm -it --restart=Never \
   --image=postgres:15-alpine \
   -n forlock \
-  -- psql -h postgres -U vault_user forlock < backup.sql
+  -- psql -h postgres -U forlock forlock < backup.sql
 ```
 
 ---

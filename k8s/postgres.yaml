@@ -75,7 +75,7 @@ spec:
               command:
                 - pg_isready
                 - -U
-                - vault_user
+                - forlock
                 - -d
                 - forlock
             initialDelaySeconds: 30
@@ -86,7 +86,7 @@ spec:
               command:
                 - pg_isready
                 - -U
-                - vault_user
+                - forlock
                 - -d
                 - forlock
             initialDelaySeconds: 5

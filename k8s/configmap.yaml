@@ -8,7 +8,7 @@ metadata:
 data:
   # Database
   POSTGRES_DB: "forlock"
-  POSTGRES_USER: "vault_user"
+  POSTGRES_USER: "forlock"
 
   # RabbitMQ
   RABBITMQ_USER: "forlock"

@@ -338,5 +338,5 @@ tar -cvf swarm-backup.tar /var/lib/docker/swarm
 
 ```bash
 docker exec $(docker ps -q -f name=forlock_postgres) \
-  pg_dump -U vault_user forlock | gzip > backup.sql.gz
+  pg_dump -U forlock forlock | gzip > backup.sql.gz
 ```

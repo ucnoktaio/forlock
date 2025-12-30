@@ -64,7 +64,7 @@ spec:
                   name: forlock-secrets
                   key: postgres-password
             - name: ConnectionStrings__DefaultConnection
-              value: "Host=postgres;Port=5432;Database=forlock;Username=vault_user;Password=$(POSTGRES_PASSWORD);Pooling=true;MinPoolSize=5;MaxPoolSize=50"
+              value: "Host=postgres;Port=5432;Database=forlock;Username=forlock;Password=$(POSTGRES_PASSWORD);Pooling=true;MinPoolSize=5;MaxPoolSize=50"
 
             # JWT
             - name: Authentication__Jwt__SecretKey

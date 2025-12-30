@@ -109,7 +109,7 @@ FIDO2_ORIGIN=https://localhost
 # Database
 # ==========================================
 POSTGRES_DB=forlock
-POSTGRES_USER=vault_user
+POSTGRES_USER=forlock
 POSTGRES_PASSWORD=$POSTGRES_PASSWORD
 
 # ==========================================
@@ -168,6 +168,8 @@ EOF
             echo "echo '$JWT_SECRET' | docker secret create jwt_secret -"
             echo "echo '$VAULT_MASTER_KEY' | docker secret create vault_master_key -"
             echo "echo '$SYSTEM_MASTER_KEY' | docker secret create system_master_key -"
+            echo "echo 'Host=postgres;Database=forlock;Username=forlock;Password=$POSTGRES_PASSWORD' | docker secret create db_connection_string -"
+            echo "echo 'redis:6379,password=$REDIS_PASSWORD' | docker secret create redis_connection_string -"
         else
             # Check if swarm is initialized
             if ! docker info 2>/dev/null | grep -q "Swarm: active"; then
@@ -200,6 +202,18 @@ EOF
             echo "$SYSTEM_MASTER_KEY" | docker secret create system_master_key - 2>/dev/null && \
                 echo -e "${GREEN}Created: system_master_key${NC}" || \
                 echo -e "${YELLOW}Exists: system_master_key${NC}"
+
+            # Create connection string secrets for API
+            DB_CONN="Host=postgres;Database=forlock;Username=forlock;Password=$POSTGRES_PASSWORD"
+            REDIS_CONN="redis:6379,password=$REDIS_PASSWORD"
+
+            echo "$DB_CONN" | docker secret create db_connection_string - 2>/dev/null && \
+                echo -e "${GREEN}Created: db_connection_string${NC}" || \
+                echo -e "${YELLOW}Exists: db_connection_string${NC}"
+
+            echo "$REDIS_CONN" | docker secret create redis_connection_string - 2>/dev/null && \
+                echo -e "${GREEN}Created: redis_connection_string${NC}" || \
+                echo -e "${YELLOW}Exists: redis_connection_string${NC}"
 
             echo ""
             echo -e "${GREEN}All secrets created!${NC}"

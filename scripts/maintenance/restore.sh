@@ -69,7 +69,7 @@ restore_postgres() {
 
     # Restore
     echo "  Restoring database..."
-    gunzip -c "$backup_file" | docker exec -i forlock-postgres psql -U vault_user forlock
+    gunzip -c "$backup_file" | docker exec -i forlock-postgres psql -U forlock forlock
 
     # Start API
     echo "  Starting API..."

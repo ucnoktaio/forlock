@@ -21,7 +21,7 @@ services:
     restart: always
     environment:
       POSTGRES_DB: ${POSTGRES_DB:-forlock}
-      POSTGRES_USER: ${POSTGRES_USER:-vault_user}
+      POSTGRES_USER: ${POSTGRES_USER:-forlock}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?POSTGRES_PASSWORD is required}
       POSTGRES_INITDB_ARGS: "-E UTF8 --locale=en_US.UTF-8"
     volumes:
@@ -30,7 +30,7 @@ services:
     networks:
       - internal
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-vault_user} -d ${POSTGRES_DB:-forlock}"]
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-forlock} -d ${POSTGRES_DB:-forlock}"]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -38,8 +38,8 @@ services:
     deploy:
       resources:
         limits:
-          cpus: '1'
-          memory: 512M
+          cpus: '${POSTGRES_CPU_LIMIT:-1}'
+          memory: ${POSTGRES_MEMORY_LIMIT:-512M}
 
   redis:
     image: redis:7-alpine
@@ -63,8 +63,8 @@ services:
     deploy:
       resources:
         limits:
-          cpus: '0.5'
-          memory: 256M
+          cpus: '${REDIS_CPU_LIMIT:-0.5}'
+          memory: ${REDIS_MEMORY_LIMIT:-256M}
 
   rabbitmq:
     image: rabbitmq:3.13-alpine
@@ -87,8 +87,8 @@ services:
     deploy:
       resources:
         limits:
-          cpus: '0.5'
-          memory: 256M
+          cpus: '${RABBITMQ_CPU_LIMIT:-0.5}'
+          memory: ${RABBITMQ_MEMORY_LIMIT:-256M}
 
   # ==========================================
   # Application Services
@@ -105,7 +105,7 @@ services:
 
       # Database
       Database__Provider: PostgreSQL
-      ConnectionStrings__DefaultConnection: Host=postgres;Port=5432;Database=${POSTGRES_DB:-forlock};Username=${POSTGRES_USER:-vault_user};Password=${POSTGRES_PASSWORD};Pooling=true;MinPoolSize=5;MaxPoolSize=50
+      ConnectionStrings__DefaultConnection: Host=postgres;Port=5432;Database=${POSTGRES_DB:-forlock};Username=${POSTGRES_USER:-forlock};Password=${POSTGRES_PASSWORD};Pooling=true;MinPoolSize=5;MaxPoolSize=50
 
       # JWT
       Authentication__Jwt__SecretKey: ${JWT_SECRET_KEY:?JWT_SECRET_KEY is required}
@@ -172,8 +172,8 @@ services:
     deploy:
       resources:
         limits:
-          cpus: '2'
-          memory: 1G
+          cpus: '${API_CPU_LIMIT:-2}'
+          memory: ${API_MEMORY_LIMIT:-1G}
 
   frontend:
     image: ucnokta/forlock-frontend:${IMAGE_TAG:-latest}

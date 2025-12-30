@@ -148,7 +148,7 @@ docker compose up -d
 ### Backup Database
 
 ```bash
-docker exec forlock-postgres pg_dump -U vault_user forlock | \
+docker exec forlock-postgres pg_dump -U forlock forlock | \
   gzip > backup_$(date +%Y%m%d).sql.gz
 ```
 
@@ -156,7 +156,7 @@ docker exec forlock-postgres pg_dump -U vault_user forlock | \
 
 ```bash
 gunzip -c backup_20241230.sql.gz | \
-  docker exec -i forlock-postgres psql -U vault_user forlock
+  docker exec -i forlock-postgres psql -U forlock forlock
 ```
 
 ---
@@ -265,7 +265,7 @@ docker inspect forlock-api | jq '.[0].State'
 ### Database connection error
 
 ```bash
-docker exec forlock-postgres pg_isready -U vault_user
+docker exec forlock-postgres pg_isready -U forlock
 docker logs forlock-postgres --tail 50
 ```
 

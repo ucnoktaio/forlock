@@ -45,9 +45,9 @@ backup_postgres() {
     mkdir -p "$BACKUP_DIR"
 
     if [ "$SWARM_MODE" = true ]; then
-        docker exec "$container" pg_dump -U vault_user forlock | gzip > "$backup_file"
+        docker exec "$container" pg_dump -U forlock forlock | gzip > "$backup_file"
     else
-        docker exec forlock-postgres pg_dump -U vault_user forlock | gzip > "$backup_file"
+        docker exec forlock-postgres pg_dump -U forlock forlock | gzip > "$backup_file"
     fi
 
     local size=$(du -h "$backup_file" | cut -f1)

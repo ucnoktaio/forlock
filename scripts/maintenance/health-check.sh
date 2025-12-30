@@ -77,7 +77,7 @@ check_api_health() {
 
 check_postgres_connection() {
     local result
-    result=$(docker exec forlock-postgres pg_isready -U vault_user 2>/dev/null || echo "failed")
+    result=$(docker exec forlock-postgres pg_isready -U forlock 2>/dev/null || echo "failed")
 
     if [ "$JSON_OUTPUT" = true ]; then
         if [[ "$result" == *"accepting"* ]]; then
@@ -96,7 +96,29 @@ check_postgres_connection() {
 
 check_redis_connection() {
     local result
-    result=$(docker exec forlock-redis redis-cli ping 2>/dev/null || echo "failed")
+    local container_name="forlock-redis"
+
+    # In Swarm mode, find the container name
+    if [ "$SWARM_MODE" = true ]; then
+        container_name=$(docker ps -q -f "name=forlock_redis" 2>/dev/null | head -1)
+        if [ -z "$container_name" ]; then
+            result="failed"
+        else
+            result=$(docker exec "$container_name" redis-cli ping 2>/dev/null || echo "failed")
+        fi
+    else
+        # Try without auth first (for containers without password), then with password from env
+        result=$(docker exec "$container_name" redis-cli ping 2>/dev/null || echo "failed")
+        if [ "$result" = "NOAUTH Authentication required." ]; then
+            # Redis requires auth - try with password from .env if available
+            if [ -f ".env" ]; then
+                source .env 2>/dev/null || true
+            fi
+            if [ -n "$REDIS_PASSWORD" ]; then
+                result=$(docker exec "$container_name" redis-cli -a "$REDIS_PASSWORD" --no-auth-warning ping 2>/dev/null || echo "failed")
+            fi
+        fi
+    fi
 
     if [ "$JSON_OUTPUT" = true ]; then
         if [ "$result" = "PONG" ]; then
@@ -172,23 +194,18 @@ if [ "$JSON_OUTPUT" = true ]; then
     echo "  \"timestamp\": \"$(date -u +%Y-%m-%dT%H:%M:%SZ)\","
     echo "  \"swarm_mode\": $SWARM_MODE,"
     echo "  \"containers\": {"
-    check_container "postgres"
-    echo ","
-    check_container "redis"
-    echo ","
-    check_container "rabbitmq"
-    echo ","
-    check_container "api"
-    echo ","
-    check_container "frontend"
-    echo ","
-    check_container "nginx"
+    echo -n "    "; check_container "postgres"; echo ","
+    echo -n "    "; check_container "redis"; echo ","
+    echo -n "    "; check_container "rabbitmq"; echo ","
+    echo -n "    "; check_container "api"; echo ","
+    echo -n "    "; check_container "frontend"; echo ","
+    echo -n "    "; check_container "nginx"
+    echo ""
     echo "  },"
-    check_api_health
-    echo ","
-    check_disk_space
-    echo ","
-    check_memory
+    echo -n "  "; check_api_health; echo ","
+    echo -n "  "; check_disk_space; echo ","
+    echo -n "  "; check_memory
+    echo ""
     echo "}"
 else
     echo ""
