@@ -1,0 +1,102 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: postgres
+  namespace: forlock
+  labels:
+    app.kubernetes.io/name: forlock
+    app.kubernetes.io/component: postgres
+spec:
+  ports:
+    - port: 5432
+      targetPort: 5432
+  selector:
+    app.kubernetes.io/name: forlock
+    app.kubernetes.io/component: postgres
+  clusterIP: None
+
+---
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: postgres
+  namespace: forlock
+  labels:
+    app.kubernetes.io/name: forlock
+    app.kubernetes.io/component: postgres
+spec:
+  serviceName: postgres
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: forlock
+      app.kubernetes.io/component: postgres
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: forlock
+        app.kubernetes.io/component: postgres
+    spec:
+      containers:
+        - name: postgres
+          image: postgres:15-alpine
+          ports:
+            - containerPort: 5432
+          env:
+            - name: POSTGRES_DB
+              valueFrom:
+                configMapKeyRef:
+                  name: forlock-config
+                  key: POSTGRES_DB
+            - name: POSTGRES_USER
+              valueFrom:
+                configMapKeyRef:
+                  name: forlock-config
+                  key: POSTGRES_USER
+            - name: POSTGRES_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: forlock-secrets
+                  key: postgres-password
+            - name: POSTGRES_INITDB_ARGS
+              value: "-E UTF8 --locale=en_US.UTF-8"
+          volumeMounts:
+            - name: postgres-data
+              mountPath: /var/lib/postgresql/data
+          resources:
+            requests:
+              cpu: 500m
+              memory: 512Mi
+            limits:
+              cpu: 2000m
+              memory: 1Gi
+          livenessProbe:
+            exec:
+              command:
+                - pg_isready
+                - -U
+                - vault_user
+                - -d
+                - forlock
+            initialDelaySeconds: 30
+            periodSeconds: 10
+            timeoutSeconds: 5
+          readinessProbe:
+            exec:
+              command:
+                - pg_isready
+                - -U
+                - vault_user
+                - -d
+                - forlock
+            initialDelaySeconds: 5
+            periodSeconds: 5
+            timeoutSeconds: 3
+  volumeClaimTemplates:
+    - metadata:
+        name: postgres-data
+      spec:
+        accessModes: ["ReadWriteOnce"]
+        resources:
+          requests:
+            storage: 10Gi

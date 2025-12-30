@@ -1,0 +1,40 @@
+# Environment files with secrets
+.env
+.env.local
+.env.production
+.env.secrets
+
+# SSL certificates
+ssl/
+*.pem
+*.key
+*.crt
+*.csr
+
+# Logs
+logs/
+*.log
+
+# Backups
+backups/
+*.sql
+*.sql.gz
+*.tar.gz
+*.zip
+
+# Docker volumes (if stored locally)
+data/
+
+# Editor files
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Kubernetes generated secrets
+k8s/secrets-generated.yaml

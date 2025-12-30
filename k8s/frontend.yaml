@@ -1,0 +1,70 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: frontend
+  namespace: forlock
+  labels:
+    app.kubernetes.io/name: forlock
+    app.kubernetes.io/component: frontend
+spec:
+  ports:
+    - port: 80
+      targetPort: 80
+  selector:
+    app.kubernetes.io/name: forlock
+    app.kubernetes.io/component: frontend
+
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: frontend
+  namespace: forlock
+  labels:
+    app.kubernetes.io/name: forlock
+    app.kubernetes.io/component: frontend
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: forlock
+      app.kubernetes.io/component: frontend
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 0
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: forlock
+        app.kubernetes.io/component: frontend
+    spec:
+      imagePullSecrets:
+        - name: forlock-registry
+      containers:
+        - name: frontend
+          image: ucnokta/forlock-frontend:latest
+          ports:
+            - containerPort: 80
+          resources:
+            requests:
+              cpu: 100m
+              memory: 64Mi
+            limits:
+              cpu: 500m
+              memory: 128Mi
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: 80
+            initialDelaySeconds: 10
+            periodSeconds: 30
+            timeoutSeconds: 5
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: 80
+            initialDelaySeconds: 5
+            periodSeconds: 10
+            timeoutSeconds: 3
