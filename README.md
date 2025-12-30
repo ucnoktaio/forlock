@@ -248,7 +248,7 @@ Located in `scripts/maintenance/`:
 ## Support
 
 - **Issues**: [GitHub Issues](https://github.com/ucnokta/forlock-deploy/issues)
-- **Security**: security@ucnokta.com
+- **Security**: security@ucnokta.io
 
 ---
 
