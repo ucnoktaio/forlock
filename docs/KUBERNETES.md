@@ -54,8 +54,8 @@ Deploy Forlock on Kubernetes for enterprise-scale deployments.
 ### 1. Clone Repository
 
 ```bash
-git clone https://github.com/ucnokta/forlock-deploy.git
-cd forlock-deploy
+git clone https://github.com/ucnoktaio/forlock.git
+cd forlock
 ```
 
 ### 2. Create Namespace

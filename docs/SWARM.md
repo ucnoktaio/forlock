@@ -61,7 +61,7 @@ docker node ls
 
 ```bash
 # On manager
-git clone https://github.com/ucnokta/forlock-deploy.git /opt/forlock
+git clone https://github.com/ucnoktaio/forlock.git /opt/forlock
 cd /opt/forlock
 ```
 

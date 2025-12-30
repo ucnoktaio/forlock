@@ -241,8 +241,8 @@ Using the provided backup script:
 4. **Deploy using the deployment package**:
    ```bash
    # Extract deployment package
-   tar -xzf forlock-deploy.tar.gz
-   cd forlock-deploy
+   tar -xzf forlock.tar.gz
+   cd forlock
 
    # Configure environment
    cp .env.example .env

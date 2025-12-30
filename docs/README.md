@@ -105,7 +105,7 @@ docs/
 
 For technical support and inquiries:
 
-- **Documentation Issues**: [GitHub Issues](https://github.com/ucnokta/forlock-deploy/issues)
+- **Documentation Issues**: [GitHub Issues](https://github.com/ucnoktaio/forlock/issues)
 - **Security Concerns**: security@ucnokta.io
 - **Compliance Questions**: compliance@ucnokta.io
 

@@ -62,7 +62,7 @@ Vault running alongside Forlock in the same Docker network.
 ### 1. Deploy Vault
 
 ```bash
-cd /path/to/forlock-deploy
+cd /path/to/forlock
 
 # Start Vault
 docker compose -f vault/docker-compose.yml up -d

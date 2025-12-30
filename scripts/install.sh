@@ -3,7 +3,7 @@
 # Forlock One-Line Installer
 #
 # Usage:
-#   curl -fsSL https://raw.githubusercontent.com/ucnokta/forlock-deploy/main/scripts/install.sh | \
+#   curl -fsSL https://raw.githubusercontent.com/ucnoktaio/forlock/main/scripts/install.sh | \
 #     DOCKER_TOKEN=<token> bash
 #
 # Environment Variables:
@@ -28,7 +28,7 @@ DOCKER_USER="${DOCKER_USER:-ucnokta}"
 INSTALL_DIR="${INSTALL_DIR:-/opt/forlock}"
 DOMAIN="${DOMAIN:-localhost}"
 MODE="${MODE:-single}"
-REPO_URL="https://github.com/ucnokta/forlock-deploy.git"
+REPO_URL="https://github.com/ucnoktaio/forlock.git"
 
 echo ""
 echo -e "${BLUE}╔═══════════════════════════════════════╗${NC}"

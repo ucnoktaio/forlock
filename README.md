@@ -7,7 +7,7 @@ Self-hosted password vault deployment for enterprises.
 ### Option 1: One-Liner Install
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/ucnokta/forlock-deploy/main/scripts/install.sh | \
+curl -fsSL https://raw.githubusercontent.com/ucnoktaio/forlock/main/scripts/install.sh | \
   DOCKER_TOKEN=<your-token> bash
 ```
 
@@ -18,8 +18,8 @@ curl -fsSL https://raw.githubusercontent.com/ucnokta/forlock-deploy/main/scripts
 echo "<TOKEN>" | docker login -u ucnokta --password-stdin
 
 # 2. Clone and configure
-git clone https://github.com/ucnokta/forlock-deploy.git
-cd forlock-deploy
+git clone https://github.com/ucnoktaio/forlock.git
+cd forlock
 ./scripts/generate-secrets.sh
 
 # 3. Deploy
@@ -269,7 +269,7 @@ See [Vault Integration Guide](docs/guides/VAULT_INTEGRATION.md) for details.
 
 ## Support
 
-- **Issues**: [GitHub Issues](https://github.com/ucnokta/forlock-deploy/issues)
+- **Issues**: [GitHub Issues](https://github.com/ucnoktaio/forlock/issues)
 - **Security**: security@ucnokta.io
 
 ---

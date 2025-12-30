@@ -44,7 +44,7 @@ echo "<ACCESS_TOKEN>" | docker login -u ucnokta --password-stdin
 ### 3. Clone Repository
 
 ```bash
-git clone https://github.com/ucnokta/forlock-deploy.git /opt/forlock
+git clone https://github.com/ucnoktaio/forlock.git /opt/forlock
 cd /opt/forlock
 ```
 
