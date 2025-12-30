@@ -110,6 +110,18 @@ else
 fi
 
 chmod +x scripts/*.sh
+chmod +x scripts/maintenance/*.sh 2>/dev/null || true
+
+# Step 3.5: Run pre-flight check
+echo ""
+echo -e "${BLUE}[3.5/5] Running pre-flight validation...${NC}"
+if [ -f "./scripts/preflight-check.sh" ]; then
+    ./scripts/preflight-check.sh --quiet || {
+        echo -e "${RED}Pre-flight check failed. Please resolve issues above.${NC}"
+        exit 1
+    }
+    echo -e "${GREEN}Pre-flight check passed${NC}"
+fi
 
 # Step 4: Generate secrets
 echo ""

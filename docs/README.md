@@ -8,6 +8,8 @@
 
 | Category | Document | Description |
 |----------|----------|-------------|
+| **Getting Started** | [Deployment Checklist](DEPLOYMENT_CHECKLIST.md) | Pre-deployment verification |
+| | [Troubleshooting](TROUBLESHOOTING.md) | Common issues & solutions |
 | **Deployment** | [Single Node](SINGLE_NODE.md) | Docker Compose deployment |
 | | [Docker Swarm](SWARM.md) | High-availability deployment |
 | | [Kubernetes](KUBERNETES.md) | K8s deployment |

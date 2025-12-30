@@ -64,11 +64,11 @@ services:
   redis:
     image: redis:7-alpine
     command: >
-      sh -c "redis-server
-      --requirepass $$(cat /run/secrets/redis_password)
+      sh -c 'redis-server
+      --requirepass "$$(cat /run/secrets/redis_password)"
       --maxmemory 512mb
       --maxmemory-policy volatile-lru
-      --appendonly yes"
+      --appendonly yes'
     secrets:
       - redis_password
     volumes:
@@ -137,8 +137,8 @@ services:
   api:
     image: ucnokta/forlock-api:${IMAGE_TAG:-latest}
     secrets:
-      - postgres_password
-      - redis_password
+      - db_connection_string
+      - redis_connection_string
       - rabbitmq_password
       - jwt_secret
       - vault_master_key
@@ -148,9 +148,9 @@ services:
       ASPNETCORE_URLS: http://+:8080
       ASPNETCORE_FORWARDEDHEADERS_ENABLED: "true"
 
-      # Database
+      # Database (password read from secret file at runtime)
       Database__Provider: PostgreSQL
-      ConnectionStrings__DefaultConnection: Host=postgres;Port=5432;Database=forlock;Username=vault_user;Password=__POSTGRES_PASSWORD__;Pooling=true;MinPoolSize=5;MaxPoolSize=50
+      ConnectionStrings__DefaultConnection_File: /run/secrets/db_connection_string
 
       # JWT
       Authentication__Jwt__SecretKey_File: /run/secrets/jwt_secret
@@ -169,9 +169,9 @@ services:
       Security__EnableMFA: "true"
       Security__EnableHardwareKeys: "true"
 
-      # Redis
+      # Redis (password read from secret file at runtime)
       Redis__Enabled: "true"
-      Redis__ConnectionString: redis:6379,password=__REDIS_PASSWORD__,ssl=false,abortConnect=false
+      Redis__ConnectionString_File: /run/secrets/redis_connection_string
 
       # RabbitMQ
       RabbitMq__Host: rabbitmq
@@ -302,8 +302,13 @@ services:
 # ==========================================
 # Secrets (Create before deploying)
 # ==========================================
+# Create secrets with:
+#   echo "value" | docker secret create secret_name -
+# Or use generate-secrets.sh --swarm
 secrets:
-  postgres_password:
+  db_connection_string:
+    external: true
+  redis_connection_string:
     external: true
   redis_password:
     external: true

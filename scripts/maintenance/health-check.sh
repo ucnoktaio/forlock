@@ -75,6 +75,63 @@ check_api_health() {
     fi
 }
 
+check_postgres_connection() {
+    local result
+    result=$(docker exec forlock-postgres pg_isready -U vault_user 2>/dev/null || echo "failed")
+
+    if [ "$JSON_OUTPUT" = true ]; then
+        if [[ "$result" == *"accepting"* ]]; then
+            echo "\"postgres_ready\": true"
+        else
+            echo "\"postgres_ready\": false"
+        fi
+    else
+        if [[ "$result" == *"accepting"* ]]; then
+            echo -e "${GREEN}[OK]${NC} PostgreSQL - Accepting connections"
+        else
+            echo -e "${RED}[FAIL]${NC} PostgreSQL - Not accepting connections"
+        fi
+    fi
+}
+
+check_redis_connection() {
+    local result
+    result=$(docker exec forlock-redis redis-cli ping 2>/dev/null || echo "failed")
+
+    if [ "$JSON_OUTPUT" = true ]; then
+        if [ "$result" = "PONG" ]; then
+            echo "\"redis_ready\": true"
+        else
+            echo "\"redis_ready\": false"
+        fi
+    else
+        if [ "$result" = "PONG" ]; then
+            echo -e "${GREEN}[OK]${NC} Redis - Responding to PING"
+        else
+            echo -e "${RED}[FAIL]${NC} Redis - Not responding"
+        fi
+    fi
+}
+
+check_rabbitmq_connection() {
+    local result
+    result=$(docker exec forlock-rabbitmq rabbitmqctl status 2>/dev/null | head -1 || echo "failed")
+
+    if [ "$JSON_OUTPUT" = true ]; then
+        if [[ "$result" == *"Status"* ]] || [[ "$result" == *"pid"* ]]; then
+            echo "\"rabbitmq_ready\": true"
+        else
+            echo "\"rabbitmq_ready\": false"
+        fi
+    else
+        if [[ "$result" == *"Status"* ]] || [[ "$result" == *"pid"* ]]; then
+            echo -e "${GREEN}[OK]${NC} RabbitMQ - Running"
+        else
+            echo -e "${RED}[FAIL]${NC} RabbitMQ - Not responding"
+        fi
+    fi
+}
+
 check_disk_space() {
     local usage
     usage=$(df -h / | awk 'NR==2 {print $5}' | tr -d '%')
@@ -145,6 +202,11 @@ else
     check_container "api"
     check_container "frontend"
     check_container "nginx"
+    echo ""
+    echo "Dependencies:"
+    check_postgres_connection
+    check_redis_connection
+    check_rabbitmq_connection
     echo ""
     echo "Endpoints:"
     check_api_health
