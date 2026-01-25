@@ -94,6 +94,7 @@ services:
   # Application Services
   # ==========================================
 
+  # Vault API (Personal Password Vault)
   api:
     image: ucnokta/forlock-api:${IMAGE_TAG:-latest}
     container_name: forlock-api
@@ -175,6 +176,109 @@ services:
           cpus: '${API_CPU_LIMIT:-2}'
           memory: ${API_MEMORY_LIMIT:-1G}
 
+  # EPRS API (Enterprise Password Rotation System)
+  eprs-api:
+    image: ucnokta/forlock-eprs-api:${IMAGE_TAG:-latest}
+    container_name: forlock-eprs-api
+    restart: always
+    environment:
+      ASPNETCORE_ENVIRONMENT: Production
+      ASPNETCORE_URLS: http://+:8080
+      ASPNETCORE_FORWARDEDHEADERS_ENABLED: "true"
+
+      # Database (Phase 3: Separate forlock_eprs database)
+      Database__Provider: PostgreSQL
+      ConnectionStrings__EprsDatabase: Host=postgres;Port=5432;Database=${POSTGRES_DB:-forlock}_eprs;Username=${POSTGRES_USER:-forlock};Password=${POSTGRES_PASSWORD};Pooling=true;MinPoolSize=5;MaxPoolSize=30
+
+      # JWT (shared with main API)
+      Authentication__Jwt__SecretKey: ${JWT_SECRET_KEY:?JWT_SECRET_KEY is required}
+      Authentication__Jwt__Issuer: ${JWT_ISSUER:-forlock-api}
+      Authentication__Jwt__Audience: ${JWT_AUDIENCE:-forlock-clients}
+      Authentication__Jwt__ExpirationMinutes: ${JWT_EXPIRATION_MINUTES:-480}
+
+      # Redis
+      Redis__Enabled: "true"
+      Redis__ConnectionString: redis:6379,password=${REDIS_PASSWORD},ssl=false,abortConnect=false
+      ConnectionStrings__Redis: redis:6379,password=${REDIS_PASSWORD},ssl=false,abortConnect=false
+
+      # RabbitMQ
+      RabbitMq__Host: rabbitmq
+      RabbitMq__VirtualHost: forlock
+      RabbitMq__Username: ${RABBITMQ_USER:-forlock}
+      RabbitMq__Password: ${RABBITMQ_PASSWORD}
+      RabbitMq__Port: 5672
+
+      # CORS
+      Cors__AllowedOrigins: ${CORS_ALLOWED_ORIGINS:-https://localhost}
+
+      # Logging
+      Serilog__MinimumLevel__Default: ${LOG_LEVEL:-Information}
+
+      # EPRS-specific features
+      EPRS__EnableDiscovery: "true"
+      EPRS__EnableRotation: "true"
+      EPRS__AgentHeartbeatInterval: "60"
+    volumes:
+      - eprs_data:/app/data
+      - eprs_logs:/var/log/eprs
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+    networks:
+      - internal
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+    deploy:
+      resources:
+        limits:
+          cpus: '${EPRS_API_CPU_LIMIT:-1}'
+          memory: ${EPRS_API_MEMORY_LIMIT:-768M}
+
+  # API Gateway (YARP Reverse Proxy)
+  gateway:
+    image: ucnokta/forlock-gateway:${IMAGE_TAG:-latest}
+    container_name: forlock-gateway
+    restart: always
+    environment:
+      ASPNETCORE_ENVIRONMENT: Production
+      ASPNETCORE_URLS: http://+:8080
+
+      # YARP cluster destinations
+      ReverseProxy__Clusters__vault-cluster__Destinations__vault-api__Address: http://api:8080
+      ReverseProxy__Clusters__eprs-cluster__Destinations__eprs-api__Address: http://eprs-api:8080
+
+      # CORS
+      Cors__AllowedOrigins: ${CORS_ALLOWED_ORIGINS:-https://localhost}
+
+      # Logging
+      Serilog__MinimumLevel__Default: ${LOG_LEVEL:-Information}
+    depends_on:
+      api:
+        condition: service_healthy
+      eprs-api:
+        condition: service_healthy
+    networks:
+      - internal
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+    deploy:
+      resources:
+        limits:
+          cpus: '${GATEWAY_CPU_LIMIT:-0.5}'
+          memory: ${GATEWAY_MEMORY_LIMIT:-512M}
+
   frontend:
     image: ucnokta/forlock-frontend:${IMAGE_TAG:-latest}
     container_name: forlock-frontend
@@ -244,6 +348,8 @@ volumes:
   redis_data:
   rabbitmq_data:
   api_logs:
+  eprs_data:
+  eprs_logs:
   dataprotection_keys:
   certbot_webroot:
   certbot_certs:

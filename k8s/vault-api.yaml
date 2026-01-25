@@ -1,0 +1,247 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: vault-api
+  namespace: forlock
+  labels:
+    app.kubernetes.io/name: forlock
+    app.kubernetes.io/component: vault-api
+spec:
+  type: ClusterIP
+  ports:
+    - port: 8080
+      targetPort: 8080
+      protocol: TCP
+      name: http
+  selector:
+    app.kubernetes.io/name: forlock
+    app.kubernetes.io/component: vault-api
+
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: vault-api
+  namespace: forlock
+  labels:
+    app.kubernetes.io/name: forlock
+    app.kubernetes.io/component: vault-api
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: forlock
+      app.kubernetes.io/component: vault-api
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 0
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: forlock
+        app.kubernetes.io/component: vault-api
+    spec:
+      imagePullSecrets:
+        - name: forlock-registry
+      containers:
+        - name: vault-api
+          image: ucnokta/forlock-api:latest
+          ports:
+            - containerPort: 8080
+          env:
+            - name: ASPNETCORE_ENVIRONMENT
+              value: "Production"
+            - name: ASPNETCORE_URLS
+              value: "http://+:8080"
+            - name: ASPNETCORE_FORWARDEDHEADERS_ENABLED
+              value: "true"
+
+            # Database
+            - name: Database__Provider
+              value: "PostgreSQL"
+            - name: POSTGRES_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: forlock-secrets
+                  key: postgres-password
+            - name: ConnectionStrings__DefaultConnection
+              value: "Host=postgres;Port=5432;Database=forlock;Username=forlock;Password=$(POSTGRES_PASSWORD);Pooling=true;MinPoolSize=5;MaxPoolSize=50"
+
+            # JWT
+            - name: Authentication__Jwt__SecretKey
+              valueFrom:
+                secretKeyRef:
+                  name: forlock-secrets
+                  key: jwt-secret
+            - name: Authentication__Jwt__Issuer
+              valueFrom:
+                configMapKeyRef:
+                  name: forlock-config
+                  key: JWT_ISSUER
+            - name: Authentication__Jwt__Audience
+              valueFrom:
+                configMapKeyRef:
+                  name: forlock-config
+                  key: JWT_AUDIENCE
+            - name: Authentication__Jwt__ExpirationMinutes
+              valueFrom:
+                configMapKeyRef:
+                  name: forlock-config
+                  key: JWT_EXPIRATION_MINUTES
+
+            # Encryption
+            - name: VAULT_MASTER_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: forlock-secrets
+                  key: vault-master-key
+            - name: SYSTEM_MASTER_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: forlock-secrets
+                  key: system-master-key
+
+            # Vault disabled
+            - name: Vault__Enabled
+              value: "false"
+
+            # Security
+            - name: Security__EnableMFA
+              valueFrom:
+                configMapKeyRef:
+                  name: forlock-config
+                  key: ENABLE_MFA
+            - name: Security__EnableHardwareKeys
+              valueFrom:
+                configMapKeyRef:
+                  name: forlock-config
+                  key: ENABLE_HARDWARE_KEYS
+
+            # Redis
+            - name: Redis__Enabled
+              value: "true"
+            - name: REDIS_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: forlock-secrets
+                  key: redis-password
+            - name: Redis__ConnectionString
+              value: "redis:6379,password=$(REDIS_PASSWORD),ssl=false,abortConnect=false"
+            - name: ConnectionStrings__Redis
+              value: "redis:6379,password=$(REDIS_PASSWORD),ssl=false,abortConnect=false"
+
+            # RabbitMQ
+            - name: RabbitMq__Host
+              value: "rabbitmq"
+            - name: RabbitMq__VirtualHost
+              valueFrom:
+                configMapKeyRef:
+                  name: forlock-config
+                  key: RABBITMQ_VHOST
+            - name: RabbitMq__Username
+              valueFrom:
+                configMapKeyRef:
+                  name: forlock-config
+                  key: RABBITMQ_USER
+            - name: RabbitMq__Password
+              valueFrom:
+                secretKeyRef:
+                  name: forlock-secrets
+                  key: rabbitmq-password
+            - name: RabbitMq__Port
+              value: "5672"
+
+            # CORS & FIDO2
+            - name: Cors__AllowedOrigins
+              valueFrom:
+                configMapKeyRef:
+                  name: forlock-config
+                  key: CORS_ALLOWED_ORIGINS
+            - name: Fido2__ServerDomain
+              valueFrom:
+                configMapKeyRef:
+                  name: forlock-config
+                  key: FIDO2_DOMAIN
+            - name: Fido2__ServerName
+              valueFrom:
+                configMapKeyRef:
+                  name: forlock-config
+                  key: FIDO2_SERVER_NAME
+            - name: Fido2__Origins__0
+              valueFrom:
+                configMapKeyRef:
+                  name: forlock-config
+                  key: FIDO2_ORIGIN
+
+            # Logging
+            - name: Serilog__MinimumLevel__Default
+              valueFrom:
+                configMapKeyRef:
+                  name: forlock-config
+                  key: LOG_LEVEL
+
+            # Virtual HSM
+            - name: USE_VIRTUAL_HSM
+              valueFrom:
+                configMapKeyRef:
+                  name: forlock-config
+                  key: USE_VIRTUAL_HSM
+            - name: TPM_ENABLED
+              valueFrom:
+                configMapKeyRef:
+                  name: forlock-config
+                  key: TPM_ENABLED
+
+            # Swagger disabled
+            - name: Development__EnableSwagger
+              valueFrom:
+                configMapKeyRef:
+                  name: forlock-config
+                  key: ENABLE_SWAGGER
+          volumeMounts:
+            - name: api-logs
+              mountPath: /var/log/vault
+            - name: dataprotection-keys
+              mountPath: /app/.aspnet/DataProtection-Keys
+          resources:
+            requests:
+              cpu: 500m
+              memory: 512Mi
+            limits:
+              cpu: 2000m
+              memory: 1Gi
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: 8080
+            initialDelaySeconds: 60
+            periodSeconds: 30
+            timeoutSeconds: 10
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: 8080
+            initialDelaySeconds: 10
+            periodSeconds: 10
+            timeoutSeconds: 5
+      volumes:
+        - name: api-logs
+          emptyDir: {}
+        - name: dataprotection-keys
+          persistentVolumeClaim:
+            claimName: dataprotection-keys
+
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: dataprotection-keys
+  namespace: forlock
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 100Mi

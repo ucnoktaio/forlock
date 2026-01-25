@@ -1,34 +1,37 @@
 apiVersion: v1
 kind: Service
 metadata:
-  name: api
+  name: eprs-api
   namespace: forlock
   labels:
     app.kubernetes.io/name: forlock
-    app.kubernetes.io/component: api
+    app.kubernetes.io/component: eprs-api
 spec:
+  type: ClusterIP
   ports:
     - port: 8080
       targetPort: 8080
+      protocol: TCP
+      name: http
   selector:
     app.kubernetes.io/name: forlock
-    app.kubernetes.io/component: api
+    app.kubernetes.io/component: eprs-api
 
 ---
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: api
+  name: eprs-api
   namespace: forlock
   labels:
     app.kubernetes.io/name: forlock
-    app.kubernetes.io/component: api
+    app.kubernetes.io/component: eprs-api
 spec:
-  replicas: 3
+  replicas: 2
   selector:
     matchLabels:
       app.kubernetes.io/name: forlock
-      app.kubernetes.io/component: api
+      app.kubernetes.io/component: eprs-api
   strategy:
     type: RollingUpdate
     rollingUpdate:
@@ -38,15 +41,17 @@ spec:
     metadata:
       labels:
         app.kubernetes.io/name: forlock
-        app.kubernetes.io/component: api
+        app.kubernetes.io/component: eprs-api
     spec:
       imagePullSecrets:
         - name: forlock-registry
       containers:
-        - name: api
-          image: ucnokta/forlock-api:latest
+        - name: eprs-api
+          image: ucnokta/forlock-eprs-api:latest
+          imagePullPolicy: Always
           ports:
             - containerPort: 8080
+              name: http
           env:
             - name: ASPNETCORE_ENVIRONMENT
               value: "Production"
@@ -55,7 +60,7 @@ spec:
             - name: ASPNETCORE_FORWARDEDHEADERS_ENABLED
               value: "true"
 
-            # Database
+            # Database (Phase 3: Separate forlock_eprs database)
             - name: Database__Provider
               value: "PostgreSQL"
             - name: POSTGRES_PASSWORD
@@ -63,10 +68,10 @@ spec:
                 secretKeyRef:
                   name: forlock-secrets
                   key: postgres-password
-            - name: ConnectionStrings__DefaultConnection
-              value: "Host=postgres;Port=5432;Database=forlock;Username=forlock;Password=$(POSTGRES_PASSWORD);Pooling=true;MinPoolSize=5;MaxPoolSize=50"
+            - name: ConnectionStrings__EprsDatabase
+              value: "Host=postgres;Port=5432;Database=forlock_eprs;Username=forlock;Password=$(POSTGRES_PASSWORD);Pooling=true;MinPoolSize=5;MaxPoolSize=30"
 
-            # JWT
+            # JWT (shared with Vault API)
             - name: Authentication__Jwt__SecretKey
               valueFrom:
                 secretKeyRef:
@@ -87,34 +92,6 @@ spec:
                 configMapKeyRef:
                   name: forlock-config
                   key: JWT_EXPIRATION_MINUTES
-
-            # Encryption
-            - name: VAULT_MASTER_KEY
-              valueFrom:
-                secretKeyRef:
-                  name: forlock-secrets
-                  key: vault-master-key
-            - name: SYSTEM_MASTER_KEY
-              valueFrom:
-                secretKeyRef:
-                  name: forlock-secrets
-                  key: system-master-key
-
-            # Vault disabled
-            - name: Vault__Enabled
-              value: "false"
-
-            # Security
-            - name: Security__EnableMFA
-              valueFrom:
-                configMapKeyRef:
-                  name: forlock-config
-                  key: ENABLE_MFA
-            - name: Security__EnableHardwareKeys
-              valueFrom:
-                configMapKeyRef:
-                  name: forlock-config
-                  key: ENABLE_HARDWARE_KEYS
 
             # Redis
             - name: Redis__Enabled
@@ -150,27 +127,12 @@ spec:
             - name: RabbitMq__Port
               value: "5672"
 
-            # CORS & FIDO2
+            # CORS
             - name: Cors__AllowedOrigins
               valueFrom:
                 configMapKeyRef:
                   name: forlock-config
                   key: CORS_ALLOWED_ORIGINS
-            - name: Fido2__ServerDomain
-              valueFrom:
-                configMapKeyRef:
-                  name: forlock-config
-                  key: FIDO2_DOMAIN
-            - name: Fido2__ServerName
-              valueFrom:
-                configMapKeyRef:
-                  name: forlock-config
-                  key: FIDO2_SERVER_NAME
-            - name: Fido2__Origins__0
-              valueFrom:
-                configMapKeyRef:
-                  name: forlock-config
-                  key: FIDO2_ORIGIN
 
             # Logging
             - name: Serilog__MinimumLevel__Default
@@ -179,35 +141,33 @@ spec:
                   name: forlock-config
                   key: LOG_LEVEL
 
-            # Virtual HSM
-            - name: USE_VIRTUAL_HSM
+            # EPRS-specific features
+            - name: EPRS__EnableDiscovery
               valueFrom:
                 configMapKeyRef:
                   name: forlock-config
-                  key: USE_VIRTUAL_HSM
-            - name: TPM_ENABLED
+                  key: EPRS__ENABLE_DISCOVERY
+            - name: EPRS__EnableRotation
               valueFrom:
                 configMapKeyRef:
                   name: forlock-config
-                  key: TPM_ENABLED
-
-            # Swagger disabled
-            - name: Development__EnableSwagger
+                  key: EPRS__ENABLE_ROTATION
+            - name: EPRS__AgentHeartbeatInterval
               valueFrom:
                 configMapKeyRef:
                   name: forlock-config
-                  key: ENABLE_SWAGGER
+                  key: EPRS__AGENT_HEARTBEAT_INTERVAL
           volumeMounts:
-            - name: api-logs
-              mountPath: /var/log/vault
-            - name: dataprotection-keys
-              mountPath: /app/.aspnet/DataProtection-Keys
+            - name: eprs-data
+              mountPath: /app/data
+            - name: eprs-logs
+              mountPath: /var/log/eprs
           resources:
             requests:
-              cpu: 500m
+              cpu: 250m
               memory: 512Mi
             limits:
-              cpu: 2000m
+              cpu: 1000m
               memory: 1Gi
           livenessProbe:
             httpGet:
@@ -216,6 +176,7 @@ spec:
             initialDelaySeconds: 60
             periodSeconds: 30
             timeoutSeconds: 10
+            failureThreshold: 3
           readinessProbe:
             httpGet:
               path: /health
@@ -223,22 +184,37 @@ spec:
             initialDelaySeconds: 10
             periodSeconds: 10
             timeoutSeconds: 5
+            failureThreshold: 2
       volumes:
-        - name: api-logs
-          emptyDir: {}
-        - name: dataprotection-keys
+        - name: eprs-data
           persistentVolumeClaim:
-            claimName: dataprotection-keys
+            claimName: eprs-data
+        - name: eprs-logs
+          emptyDir: {}
 
 ---
 apiVersion: v1
 kind: PersistentVolumeClaim
 metadata:
-  name: dataprotection-keys
+  name: eprs-data
   namespace: forlock
 spec:
   accessModes:
     - ReadWriteOnce
   resources:
     requests:
-      storage: 100Mi
+      storage: 5Gi
+  storageClassName: do-block-storage
+
+---
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: eprs-api-pdb
+  namespace: forlock
+spec:
+  minAvailable: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: forlock
+      app.kubernetes.io/component: eprs-api

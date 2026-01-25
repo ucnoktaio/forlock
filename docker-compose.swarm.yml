@@ -131,9 +131,10 @@ services:
       start_period: 30s
 
   # ==========================================
-  # API Service (Scalable)
+  # Application Services (Scalable)
   # ==========================================
 
+  # Vault API (Personal Password Vault - Scalable)
   api:
     image: ucnokta/forlock-api:${IMAGE_TAG:-latest}
     secrets:
@@ -229,6 +230,138 @@ services:
       timeout: 10s
       retries: 3
       start_period: 60s
+
+  # EPRS API (Enterprise Password Rotation System - Scalable)
+  eprs-api:
+    image: ucnokta/forlock-eprs-api:${IMAGE_TAG:-latest}
+    secrets:
+      - db_connection_string
+      - redis_connection_string
+      - rabbitmq_password
+      - jwt_secret
+    environment:
+      ASPNETCORE_ENVIRONMENT: Production
+      ASPNETCORE_URLS: http://+:8080
+      ASPNETCORE_FORWARDEDHEADERS_ENABLED: "true"
+
+      # Database (Phase 3: Separate forlock_eprs database)
+      Database__Provider: PostgreSQL
+      ConnectionStrings__EprsDatabase_File: /run/secrets/db_connection_string
+
+      # JWT (shared with main API)
+      Authentication__Jwt__SecretKey_File: /run/secrets/jwt_secret
+      Authentication__Jwt__Issuer: ${JWT_ISSUER:-forlock-api}
+      Authentication__Jwt__Audience: ${JWT_AUDIENCE:-forlock-clients}
+      Authentication__Jwt__ExpirationMinutes: ${JWT_EXPIRATION_MINUTES:-480}
+
+      # Redis (password read from secret file at runtime)
+      Redis__Enabled: "true"
+      Redis__ConnectionString_File: /run/secrets/redis_connection_string
+
+      # RabbitMQ
+      RabbitMq__Host: rabbitmq
+      RabbitMq__VirtualHost: forlock
+      RabbitMq__Username: forlock
+      RabbitMq__Password_File: /run/secrets/rabbitmq_password
+      RabbitMq__Port: 5672
+
+      # CORS
+      Cors__AllowedOrigins: ${CORS_ALLOWED_ORIGINS:-https://localhost}
+
+      # Logging
+      Serilog__MinimumLevel__Default: Information
+
+      # EPRS-specific features
+      EPRS__EnableDiscovery: "true"
+      EPRS__EnableRotation: "true"
+      EPRS__AgentHeartbeatInterval: "60"
+    volumes:
+      - eprs_data:/app/data
+      - eprs_logs:/var/log/eprs
+    networks:
+      - backend
+      - frontend
+    deploy:
+      mode: replicated
+      replicas: 2
+      update_config:
+        parallelism: 1
+        delay: 30s
+        order: start-first
+        failure_action: rollback
+      rollback_config:
+        parallelism: 1
+        delay: 10s
+      resources:
+        limits:
+          cpus: '1'
+          memory: 1G
+        reservations:
+          cpus: '0.5'
+          memory: 768M
+      restart_policy:
+        condition: on-failure
+        delay: 5s
+        max_attempts: 3
+      placement:
+        constraints:
+          - node.role == worker
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+
+  # API Gateway (YARP Reverse Proxy - Scalable)
+  gateway:
+    image: ucnokta/forlock-gateway:${IMAGE_TAG:-latest}
+    environment:
+      ASPNETCORE_ENVIRONMENT: Production
+      ASPNETCORE_URLS: http://+:8080
+
+      # YARP cluster destinations (using Docker Swarm service names)
+      ReverseProxy__Clusters__vault-cluster__Destinations__vault-api__Address: http://api:8080
+      ReverseProxy__Clusters__eprs-cluster__Destinations__eprs-api__Address: http://eprs-api:8080
+
+      # CORS
+      Cors__AllowedOrigins: ${CORS_ALLOWED_ORIGINS:-https://localhost}
+
+      # Logging
+      Serilog__MinimumLevel__Default: Information
+    networks:
+      - backend
+      - frontend
+    deploy:
+      mode: replicated
+      replicas: 2
+      update_config:
+        parallelism: 1
+        delay: 10s
+        order: start-first
+        failure_action: rollback
+      rollback_config:
+        parallelism: 1
+        delay: 5s
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 512M
+        reservations:
+          cpus: '0.25'
+          memory: 256M
+      restart_policy:
+        condition: on-failure
+        delay: 5s
+      placement:
+        constraints:
+          - node.role == worker
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
 
   # ==========================================
   # Frontend Service (Scalable)
@@ -341,6 +474,8 @@ volumes:
   redis_data:
   rabbitmq_data:
   api_logs:
+  eprs_data:
+  eprs_logs:
   dataprotection_keys:
   nginx_ssl:
   nginx_logs:
